@@ -1,0 +1,56 @@
+# Variables
+CC := g++
+TARGET := "ImageProcessing"
+CFLAGS := -I/usr/local/cuda-12.3/targets/x86_64-linux/include -Iinclude -std=c++17
+LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lOpenCL
+BUILDDIR := build
+SRCDIR := src
+SRCEXT := cpp
+SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
+OBJS := $(patsubst $(SRCDIR)/%, $(BUILDDIR)/%, $(SOURCES:.$(SRCEXT)=.o))
+
+# Rule to build source files
+$(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
+	@printf "Building..\n";
+	@mkdir -p $(BUILDDIR)
+	@echo "  $(notdir $@) from $(notdir $<)"
+	@$(CC) $(CFLAGS) -c -o $@ $<
+
+# Rule to link directories
+$(TARGET): $(OBJS)
+	@printf "Linking..\n";
+	@echo "  $(notdir $(OBJS))"
+	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+
+# Clean up build files
+clean:
+	@printf "\e[31m\e[1mCleaning...\e[0m\n"
+	@echo "  /$(BUILDDIR)"
+	@echo "  /$(TARGET)"
+	@$(RM) -r $(BUILDDIR) $(OBJECTS)
+	@$(RM) "./$(TARGET)"
+    # @if [ -d "imgs" ]; then \
+    # 	find imgs ! -name 'test.png' -type f -exec $(RM) {} +; \
+    # fi
+
+# Run rule to execute the compiled program
+run:
+	@mkdir -p $(BUILDDIR)
+	@for source in $(basename $(notdir $(SOURCES))); do\
+		printf "\e[33m\e[1mBuilding...\e[0m\n";\
+		echo "  $$source.o from $$source.$(SRCEXT)";\
+		$(CC) $(CFLAGS) -c -o $(BUILDDIR)/$$source.o $(SRCDIR)/$$source.$(SRCEXT);\
+	done
+	@printf "\e[95m\e[1mLinking...\e[0m\n";
+	@echo "  $(notdir $(OBJS))"
+	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+	@printf "\e[33m\e[1mRunning $(TARGET)\e[0m\n"
+	@ ./$(TARGET)
+
+r:
+	@printf "Running $(TARGET)\n"
+	@./$(TARGET)
+
+# Phony targets
+.PHONY: all clean r
