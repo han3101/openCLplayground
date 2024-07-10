@@ -9,6 +9,11 @@ SRCEXT := cpp
 SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
 OBJS := $(patsubst $(SRCDIR)/%, $(BUILDDIR)/%, $(SOURCES:.$(SRCEXT)=.o))
 
+# Define additional flags for profiling
+ifdef PROFILE
+CFLAGS += -DPROFILE
+endif
+
 # Rule to build source files
 $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@printf "Building..\n";
@@ -30,9 +35,6 @@ clean:
 	@echo "  /$(TARGET)"
 	@$(RM) -r $(BUILDDIR) $(OBJECTS)
 	@$(RM) "./$(TARGET)"
-    # @if [ -d "imgs" ]; then \
-    # 	find imgs ! -name 'test.png' -type f -exec $(RM) {} +; \
-    # fi
 
 # Run rule to execute the compiled program
 run:
