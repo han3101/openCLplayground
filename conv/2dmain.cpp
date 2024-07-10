@@ -14,22 +14,68 @@
 #include <cassert>
 #include <cstdlib>
 
-// Length of our convolution mask
-#define MASK_LENGTH 7
+// 7 x 7 convolutional mask
+#define MASK_DIM 7
+
+// Amount the the matrix will hang over the matrix
+#define MASK_OFFSET (MASK_DIM / 2)
 
 
-// Verify the result on the CPU
-void verify_result(int *array, int *mask, int *result, int n) {
+// Verifies the 2D convolution result on the CPU
+// Takes:
+//  m:      Original matrix
+//  mask:   Convolutional mask
+//  result: Result from the GPU
+//  N:      Dimensions of the matrix
+void verify_result(std::vector<int>&m, std::vector<int>&mask, std::vector<int>&result, int N) {
+  // Temp value for accumulating results
   int temp;
-  for (int i = 0; i < n; i++) {
-    temp = 0;
-    for (int j = 0; j < MASK_LENGTH; j++) {
-      temp += array[i + j] * mask[j];
-    }
 
-    // std::cout<<"CPU: "<<temp<<" GPU: "<<result[i]<<" i:  "<<i<<"\n";
-    // std::cout<<result[i+1]<<"\n";
-    assert(temp == result[i]);
+  // Intermediate value for more readable code
+  int offset_r;
+  int offset_c;
+
+  // Go over each row
+  for (int i = 0; i < N; i++) {
+    // Go over each column
+    for (int j = 0; j < N; j++) {
+      // Reset the temp variable
+      temp = 0;
+
+      // Go over each mask row
+      for (int k = 0; k < MASK_DIM; k++) {
+        // Update offset value for row
+        offset_r = i - MASK_OFFSET + k;
+
+        // Go over each mask column
+        for (int l = 0; l < MASK_DIM; l++) {
+          // Update offset value for column
+          offset_c = j - MASK_OFFSET + l;
+
+          // Range checks if we are hanging off the matrix
+          if (offset_r >= 0 && offset_r < N) {
+            if (offset_c >= 0 && offset_c < N) {
+              // Accumulate partial results
+              temp += m[offset_r * N + offset_c] * mask[k * MASK_DIM + l];
+            }
+          }
+        }
+      }
+      // Fail if the results don't match
+      assert(result[i * N + j] == temp);
+    }
+  }
+}
+
+// Initializes an n x n matrix with random numbers
+// Takes:
+//  m : Pointer to the matrix
+//  n : Dimension of the matrix (square)
+void init_matrix(std::vector<int>&m, int n) {
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      m[n * i + j] = rand() % 100;
+    }
   }
 }
 
@@ -49,7 +95,7 @@ std::string loadKernelSource(const std::string& fileName) {
 }
 
 // load kernel for radix_sort
-std::string kernelFile = "./include/1d_tiled.cl";
+std::string kernelFile = "./include/2d_const.cl";
 
 // unsigned short data[NUM_SHORTS];
 
@@ -59,48 +105,25 @@ int main() {
     // Load radix_kernel solver
     std::string kernel_code = loadKernelSource(kernelFile);
 
-    //If there are no opencl platforms -  all_platforms == 0 and the program exits. 
-
-    //One of the key features of OpenCL is its portability. So, for instance, there might be situations
-    // in which both the CPU and the GPU can run OpenCL code. Thus, 
-    // a good practice is to verify the OpenCL platforms to choose on which the compiled code run.
-
-    // Number of elements in result array
-    int n = 1 << 20;
+    // Dimensions of the matrix (2 ^ 10 x 2 ^ 10)
+    int N = 1 << 10;
 
     // Size of the array in bytes
-    int bytes_n = n * sizeof(int);
+    size_t bytes_n = N * N * sizeof(int);
+
+    // Initialize matrix and result matrix
+    std::vector<int> matrix_h(N*N);
+    std::vector<int> result_h(N*N);
+    init_matrix(matrix_h, N);
+    
+    // std::cout<<matrix_h.size()<<"\n";
 
     // Size of the mask in bytes
-    size_t bytes_m = MASK_LENGTH * sizeof(int);
-
-    // Radius for padding the array
-    int r = MASK_LENGTH / 2;
-    int n_p = n + r * 2;
-
-    // Size of the padded array in bytes
-    size_t bytes_p = n_p * sizeof(int);
-
-    // Allocate the array (include edge elements)...
-    int *h_array = new int[n_p];
-
-    // ... and initialize it
-    for (int i = 0; i < n_p; i++) {
-        if ((i < r) || (i >= (n + r))) {
-        h_array[i] = 0;
-        } else {
-        h_array[i] = rand() % 100;
-        }
-    }
+    size_t bytes_m = MASK_DIM * MASK_DIM * sizeof(int);
 
     // Allocate the mask and initialize it
-    int *h_mask = new int[MASK_LENGTH];
-    for (int i = 0; i < MASK_LENGTH; i++) {
-        h_mask[i] = rand() % 10;
-    }
-
-    // Allocate space for the result
-    int *h_result = new int[n];
+    std::vector<int> mask_h(MASK_DIM*MASK_DIM);
+    init_matrix(mask_h, MASK_DIM);
 
     std::vector<cl::Platform> all_platforms;
     cl::Platform::get(&all_platforms);
@@ -112,11 +135,6 @@ int main() {
     //We are going to use the platform of id == 0
     cl::Platform default_platform = all_platforms[0];
     std::cout << "Using platform: " <<default_platform.getInfo<CL_PLATFORM_NAME>() << "\n";
-
-
-    //An OpenCL platform might have several devices. 
-    //The next step is to ensure that the code will run on the first device of the platform, 
-    //if found. 
 
     std::vector<cl::Device> all_devices;
     default_platform.getDevices(CL_DEVICE_TYPE_ALL, &all_devices);
@@ -152,15 +170,15 @@ int main() {
     cl::Program program(context, sources);
 
 
-    // create buffers on the device
-    cl::Buffer array_d(context, CL_MEM_READ_ONLY, bytes_p);
+    // create buffers and write data on the device
+    cl::Buffer matrix_d(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bytes_n, matrix_h.data());
     cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_n);
-    cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
+    cl::Buffer mask_d(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bytes_m, mask_h.data());
     
 
-    // Create and write data to buffer
-    queue.enqueueWriteBuffer(array_d, CL_TRUE, 0, bytes_p, (void *)h_array);
-    queue.enqueueWriteBuffer(mask_d, CL_TRUE, 0, bytes_m, (void *)h_mask);
+    // Create and write data to buffer (ALTERNATE WAY)
+    // queue.enqueueWriteBuffer(matrix_d, CL_TRUE, 0, bytes_n, (void *)matrix_h.data());
+    // queue.enqueueWriteBuffer(mask_d, CL_TRUE, 0, bytes_m, (void *)mask_h.data());
 
 
 
@@ -168,33 +186,33 @@ int main() {
         std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(default_device) << "\n";
         exit(1);
     }
-    //If runtime compilation are found they are presented in this point of the program.
 
-    // Threads per TB
-    int THREADS = 256;
-
-    // Size of full grid
-    int GRID = n;
 
     // Amount of space per-block for shared memory
     // This is padded by the overhanging radius on either side
-    size_t SHMEM = (THREADS + r * 2) * sizeof(int);
+    // size_t SHMEM = (THREADS + r * 2) * sizeof(int);
 
     // For Profiling
     cl::Event event;
 
-    cl::Kernel kernel(program, "convolution_1d");
+    cl::Kernel kernel(program, "convolution_2d");
     // cl::Kernel kernel(program, "tiledMultiply");
-    kernel.setArg(0, array_d);
+    kernel.setArg(0, matrix_d);
     kernel.setArg(1, result_d);
-    kernel.setArg(2, cl::Local(SHMEM));
-    kernel.setArg(3, mask_d);
-    kernel.setArg(4, MASK_LENGTH);
+    kernel.setArg(2, mask_d);
+    kernel.setArg(3, N);
+    kernel.setArg(4, MASK_DIM);
+    kernel.setArg(5, MASK_OFFSET);
     
-    //Details to enqueue the kernel for execution.
 
-    cl::NDRange globalSize(GRID);
-    cl::NDRange localSize(THREADS);
+    // Threads per TB
+    int LOCAL = 16;
+
+    // Dimension of Matrix
+    int GLOBAL = ((N + LOCAL - 1) / LOCAL) * LOCAL;
+
+    cl::NDRange globalSize(GLOBAL, GLOBAL);
+    cl::NDRange localSize(LOCAL, LOCAL);
 
     // Timing the computation
     auto start = std::chrono::high_resolution_clock::now();
@@ -207,10 +225,10 @@ int main() {
     std::chrono::duration<double> elapsed = end - start;
 
     //read result from the device to array h_result
-    queue.enqueueReadBuffer(result_d, CL_TRUE, 0, bytes_n, h_result);
+    queue.enqueueReadBuffer(result_d, CL_TRUE, 0, bytes_n, result_h.data());
 
     // Verify the result
-    verify_result(h_array, h_mask, h_result, n);
+    verify_result(matrix_h, mask_h, result_h, N);
 
     std::cout << "COMPLETED SUCCESSFULLY\n";
 
@@ -227,9 +245,5 @@ int main() {
 
     std::cout << "Kernel execution time: " << elapsed_time << " nanoseconds" << std::endl;
 
-    // Free allocated memory on the device and host
-    delete[] h_array;
-    delete[] h_result;
-    delete[] h_mask;
     return 0;
 }

@@ -1,11 +1,10 @@
 
-int MASK_LENGTH = 7;
-
 __kernel void convolution_1d(
     __global int *array,
     __global int *result,
     __local int *s_array,
-    __constant int* mask
+    __constant int* mask,
+    int MASK_LENGTH
 ) 
 {
     // Get global thread ID
