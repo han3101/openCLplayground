@@ -213,7 +213,6 @@ int main() {
 
     std::cout << "COMPLETED SUCCESSFULLY\n";
 
-
     std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
     // Get profiling information
