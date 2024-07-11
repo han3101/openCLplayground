@@ -57,6 +57,7 @@ public:
 
 	Image& std_convolve_clamp_to_0_cpu(uint8_t channel, const Mask::BaseMask* mask);
 	Image& std_convolve_clamp_to_border_cpu(uint8_t channel, const Mask::BaseMask* mask);
-	// Image& std_convolve_cyclic_cpu(uint8_t channel, uint32_t ker_w, uint32_t ker_h, double ker[], uint32_t cr, uint32_t cc);
+	
+	Image& crop(uint16_t cx, uint16_t cy, uint16_t cw, uint16_t ch);
 
 };

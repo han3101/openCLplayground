@@ -52,9 +52,9 @@ int main(int argc, char** argv) {
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
     OpenCLImageProcessor processor;
-    processor.std_convolve_clamp_to_border(cat, &gaussianBlur);
+    processor.std_convolve_clamp_to_cyclic(cat, &gaussianBlur);
 
-    cat.write("output/conv.jpeg");
+    // cat.write("output/conv.jpeg");
 
 	return 0;
 }

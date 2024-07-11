@@ -464,3 +464,139 @@ void OpenCLImageProcessor::std_convolve_clamp_to_border(Image& image, const Mask
 
 }
 
+void OpenCLImageProcessor::std_convolve_clamp_to_cyclic(Image& image, const Mask::BaseMask* mask) {
+    if(image.channels < 3) {
+		std::cout<<"Image "<<&image<<" has less than 3 channels which is the required channel for this convolution, please use other methods."<<std::endl;
+        return;
+	}
+
+    // Preprocessing for mask data
+    // Mask offset is basically center row or center column
+    uint32_t MASK_DIM = mask->getWidth(), MASK_OFFSET = mask->getCenterRow();
+	const double* ker = mask->getData(); 
+
+    // We will be using OpenCL's image format
+    cl_int ret;
+    cl::ImageFormat imageFormat(CL_RGB, CL_UNORM_INT8);
+    cl::Image2D inputImage_d(context, CL_MEM_READ_ONLY, imageFormat, image.w, image.h, 0, nullptr, &ret);
+    cl::Image2D output_d(context, CL_MEM_WRITE_ONLY, imageFormat, image.w, image.h, 0, nullptr, &ret);
+    if (ret != CL_SUCCESS) {
+        std::cerr << "clCreateImage2D error: " << ret << "\n";
+        return;
+    }
+    cl::size_t<3> origin;
+    origin[0] = 0;
+    origin[1] = 0;
+    origin[2] = 0;
+    cl::size_t<3> region;
+    region[0] = image.w;
+    region[1] = image.h;
+    region[2] = 1;
+    ret = queue.enqueueWriteImage(inputImage_d, CL_TRUE, origin, region, 0, 0, image.data);
+    if (ret != CL_SUCCESS) {
+        std::cerr << "WriteImage error: " << ret << "\n";
+        return;
+    }
+
+    // Use sampler to handle masking conditions
+    // Create sampler using C standard due to bug
+    // CL_ADDRESS_REPEAT is a circular clamp
+    // Define sampler properties
+    cl_sampler_properties sampler_properties[] = {
+        CL_SAMPLER_NORMALIZED_COORDS, CL_FALSE,
+        CL_SAMPLER_ADDRESSING_MODE, CL_ADDRESS_REPEAT,
+        CL_SAMPLER_FILTER_MODE, CL_FILTER_LINEAR,
+        0
+    };
+
+    // Create a sampler with specified properties using the C API
+    cl_sampler samplerC = clCreateSamplerWithProperties(
+        context(),
+        sampler_properties,
+        &ret
+    );
+    if (ret != CL_SUCCESS) {
+        std::cerr << "clSampler error: " << ret << "\n";
+        return;
+    }
+
+    cl::Sampler sampler(samplerC);
+
+    // Debugging: Print sampler properties
+    // cl_addressing_mode addressingMode;
+    // sampler.getInfo(CL_SAMPLER_ADDRESSING_MODE, &addressingMode);
+    // std::cout << "Sampler Addressing Mode: " << addressingMode << std::endl;
+
+    // cl_filter_mode filterMode;
+    // sampler.getInfo(CL_SAMPLER_FILTER_MODE, &filterMode);
+    // std::cout << "Sampler Filter Mode: " << filterMode << std::endl;
+
+    // cl_bool normalizedCoords;
+    // sampler.getInfo(CL_SAMPLER_NORMALIZED_COORDS, &normalizedCoords);
+    // std::cout << "Sampler Normalized Coordinates: " << normalizedCoords << std::endl;
+
+    // Prepare memory
+    int bytes_i = image.size * sizeof(uint8_t);
+    int bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
+    queue.enqueueWriteBuffer(mask_d, CL_TRUE, 0, bytes_m, ker);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/convolution.cl");
+    //Appending the kernel, which is presented here as a string. 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "convolution_circular");
+    kernel.setArg(0, inputImage_d);
+    kernel.setArg(1, output_d);
+    kernel.setArg(2, mask_d);
+    kernel.setArg(3, sampler);
+    kernel.setArg(4, MASK_DIM);
+    kernel.setArg(5, MASK_OFFSET);
+
+    // Set dimensions
+    cl::NDRange global(image.w, image.h);
+    // cl::NDRange local(8, 8);
+    
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    ret = queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+    if (ret != CL_SUCCESS) {
+        std::cerr << "Failed to enqueue kernel: " << ret << "\n";
+        return;
+    }
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    queue.enqueueReadImage(output_d, CL_TRUE, origin, region, 0, 0, image.data);
+
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}
+

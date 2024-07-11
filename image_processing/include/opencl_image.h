@@ -20,6 +20,7 @@ public:
 
     void std_convolve_clamp_to_0(Image& image, const Mask::BaseMask* mask);
     void std_convolve_clamp_to_border(Image& image, const Mask::BaseMask* mask);
+    void std_convolve_clamp_to_cyclic(Image& image, const Mask::BaseMask* mask);
 
 private:
     cl::Context context;
