@@ -116,8 +116,8 @@ Image& Image::diffmap_cpu(Image& img) {
 	int compare_width = fmin(w,img.w);
 	int compare_height = fmin(h,img.h);
 	int compare_channels = fmin(channels,img.channels);
-	for(uint32_t i=0; i<compare_height; ++i) {
-		for(uint32_t j=0; j<compare_width; ++j) {
+	for(uint32_t i=0; i<compare_width; ++i) {
+		for(uint32_t j=0; j<compare_height; ++j) {
 			for(uint8_t k=0; k<compare_channels; ++k) {
 				data[(i*w+j)*channels+k] = BYTE_BOUND(abs(data[(i*w+j)*channels+k] - img.data[(i*img.w+j)*img.channels+k]));
 			}
@@ -142,6 +142,40 @@ Image& Image::diffmap_scale_cpu(Image& img, uint8_t scl) {
 	scl = 255/fmax(1, fmax(scl, largest));
 	for(int i=0; i<size; ++i) {
 		data[i] *= scl;
+	}
+	return *this;
+}
+
+Image& Image::flipX() {
+	uint8_t tmp[4];
+	uint8_t* px1;
+	uint8_t* px2;
+	for(int y = 0;y < h;++y) {
+		for(int x = 0;x < w/2;++x) {
+			px1 = &data[(x + y * w) * channels];
+			px2 = &data[((w - 1 - x) + y * w) * channels];
+			
+			memcpy(tmp, px1, channels);
+			memcpy(px1, px2, channels);
+			memcpy(px2, tmp, channels);
+		}
+	}
+	return *this;
+}
+
+Image& Image::flipY() {
+	uint8_t tmp[4];
+	uint8_t* px1;
+	uint8_t* px2;
+	for(int x = 0;x < w;++x) {
+		for(int y = 0;y < h/2;++y) {
+			px1 = &data[(x + y * w) * channels];
+			px2 = &data[(x + (h - 1 - y) * w) * channels];
+
+			memcpy(tmp, px1, channels);
+			memcpy(px1, px2, channels);
+			memcpy(px2, tmp, channels);
+		}
 	}
 	return *this;
 }

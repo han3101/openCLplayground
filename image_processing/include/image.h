@@ -43,4 +43,7 @@ public:
 	Image& diffmap_cpu(Image& img);
 	Image& diffmap_scale_cpu(Image& img, uint8_t scl = 0);
 
+	Image& flipX();
+	Image& flipY();
+
 };
