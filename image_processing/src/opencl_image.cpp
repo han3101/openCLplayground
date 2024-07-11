@@ -75,7 +75,7 @@ void OpenCLImageProcessor::grayscale_avg(Image& image) {
 
     // Prepare memory
     int bytes_i = image.size * sizeof(uint8_t);
-    cl::Buffer data_d(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bytes_i, image.data);
+    cl::Buffer data_d(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, bytes_i, image.data);
 
     // Load Kernel
     std::string kernel_code = loadKernelSource("include/kernels/grayscale.cl");
@@ -93,9 +93,7 @@ void OpenCLImageProcessor::grayscale_avg(Image& image) {
     // Load in kernel args
     cl::Kernel kernel(program, "grayscale_avg");
     kernel.setArg(0, data_d);
-    kernel.setArg(1, image.w);
-    kernel.setArg(2, image.h);
-    kernel.setArg(3, image.channels);
+    kernel.setArg(1, image.channels);
 
     // Set dimensions
     cl::NDRange global(image.w * image.h);
@@ -124,7 +122,78 @@ void OpenCLImageProcessor::grayscale_avg(Image& image) {
     // Compute the elapsed time in nanoseconds
     cl_ulong elapsed_time = time_end - time_start;
 
-    std::cout << "Kernel execution time: " << elapsed_time / 1000 << " ms" << std::endl;
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}
+
+void OpenCLImageProcessor::diffmap(Image& image1, Image& image2) {
+
+    // Prepare memory
+    int bytes_i = image1.size * sizeof(uint8_t);
+    int bytes_o = image2.size * sizeof(uint8_t);
+    cl::Buffer image1_d(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, bytes_i, image1.data);
+    cl::Buffer image2_d(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bytes_o, image2.data);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/diffmap.cl");
+    //Appending the kernel, which is presented here as a string. 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    // Preprocessing
+    int compare_width = fmin(image1.w,image2.w);
+	int compare_height = fmin(image1.h,image2.h);
+	int compare_channels = fmin(image1.channels,image2.channels);
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "diffmap");
+    kernel.setArg(0, image1_d);
+    kernel.setArg(1, image2_d);
+    kernel.setArg(2, image1.w);
+    kernel.setArg(3, image1.h);
+    kernel.setArg(4, image1.channels);
+    kernel.setArg(5, image2.w);
+    kernel.setArg(6, image2.h);
+    kernel.setArg(7, image2.channels);
+    kernel.setArg(8, compare_width);
+    kernel.setArg(9, compare_height);
+    kernel.setArg(10,compare_channels);
+
+    // Set dimensions
+    cl::NDRange global(image1.w, image1.h, image1.channels);
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    queue.enqueueReadBuffer(image1_d, CL_TRUE, 0, bytes_i, image1.data);
+
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
 #endif
 
 }

@@ -1,7 +1,5 @@
 __kernel void grayscale_avg(
     __global uchar* data, 
-    int w,
-    int h,
     int channels
 ) 
 {

@@ -1,7 +1,7 @@
 # Variables
 CC := g++
 TARGET := "ImageProcessing"
-CFLAGS := -I/usr/local/cuda-12.3/targets/x86_64-linux/include -Iinclude -std=c++17
+CFLAGS := -I/usr/local/cuda-12.3/targets/x86_64-linux/include -Iinclude -std=c++17 -DCL_TARGET_OPENCL_VERSION=300
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lOpenCL
 BUILDDIR := build
 OUTPUT := output
@@ -35,7 +35,11 @@ $(OUTPUT):
 
 
 # Rule to build all
-all: $(TARGET) $(OUTPUT)
+all: clean $(TARGET) $(OUTPUT)
+
+# Rule to build with Profile
+profile:
+	$(MAKE) PROFILE=1
 
 # Clean up build files
 clean:
@@ -67,4 +71,4 @@ r:
 	@./$(TARGET)
 
 # Phony targets
-.PHONY: all clean r
+.PHONY: all clean r profile

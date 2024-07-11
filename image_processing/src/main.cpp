@@ -13,16 +13,16 @@ int main(int argc, char** argv) {
 
 
     // Timing the computation
-    auto start = std::chrono::high_resolution_clock::now();
+    // auto start = std::chrono::high_resolution_clock::now();
 
-    testA.diffmap_cpu(testB);
+    // testA.diffmap_cpu(testB);
 
-    testA.write("output/diffmap.jpeg");
+    // testA.write("output/diffmap_cpu.jpeg");
 
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
+    // auto end = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<double> elapsed = end - start;
+    // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
     
     // // High res
     // start = std::chrono::high_resolution_clock::now();
@@ -44,10 +44,10 @@ int main(int argc, char** argv) {
     // elapsed = end - start;
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
-    // OpenCLImageProcessor processor;
-    // processor.grayscale_avg(test);
+    OpenCLImageProcessor processor;
+    processor.diffmap(testA, testB);
 
-    // test.write("imgs/grayscalegpu.png");
+    testA.write("output/diffmapA.jpeg");
 
 	return 0;
 }

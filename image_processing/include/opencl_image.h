@@ -1,6 +1,6 @@
 #pragma once
 
-#define CL_USE_DEPRECATED_OPENCL_2_0_APIS
+#define CL_TARGET_OPENCL_VERSION 300
 #include <CL/cl.hpp>
 #include "image.h"
 #include <stdint.h>
@@ -13,6 +13,8 @@ public:
     void init();
     void grayscale_avg(Image& image);
     void grayscale_lum(Image& image);
+
+    void diffmap(Image& image1, Image& image2);
 
 
 private:
