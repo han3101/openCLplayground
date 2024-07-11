@@ -197,3 +197,123 @@ void OpenCLImageProcessor::diffmap(Image& image1, Image& image2) {
 #endif
 
 }
+
+void OpenCLImageProcessor::flipX(Image& image) {
+
+    // Prepare memory
+    int bytes_i = image.size * sizeof(uint8_t);
+    cl::Buffer data_d(context, CL_MEM_READ_WRITE, bytes_i);
+    queue.enqueueWriteBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/flip.cl");
+    //Appending the kernel, which is presented here as a string. 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "flipX2d");
+    kernel.setArg(0, data_d);
+    kernel.setArg(1, image.w);
+    kernel.setArg(2, image.h);
+    kernel.setArg(3, image.channels);
+
+    // Set dimensions
+    cl::NDRange global(image.w, image.h);
+    // cl::NDRange global(image.w, image.h, image.channels);
+    
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    queue.enqueueReadBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
+
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}
+
+void OpenCLImageProcessor::flipY(Image& image) {
+
+    // Prepare memory
+    int bytes_i = image.size * sizeof(uint8_t);
+    cl::Buffer data_d(context, CL_MEM_READ_WRITE, bytes_i);
+    queue.enqueueWriteBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/flip.cl");
+    //Appending the kernel, which is presented here as a string. 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "flipY2d");
+    kernel.setArg(0, data_d);
+    kernel.setArg(1, image.w);
+    kernel.setArg(2, image.h);
+    kernel.setArg(3, image.channels);
+
+    // Set dimensions
+    cl::NDRange global(image.w, image.h);
+    // cl::NDRange global(image.w, image.h, image.channels);
+    
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    queue.enqueueReadBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
+
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}

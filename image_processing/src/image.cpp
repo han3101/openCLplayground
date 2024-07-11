@@ -146,7 +146,7 @@ Image& Image::diffmap_scale_cpu(Image& img, uint8_t scl) {
 	return *this;
 }
 
-Image& Image::flipX() {
+Image& Image::flipX_cpu() {
 	uint8_t tmp[4];
 	uint8_t* px1;
 	uint8_t* px2;
@@ -163,7 +163,7 @@ Image& Image::flipX() {
 	return *this;
 }
 
-Image& Image::flipY() {
+Image& Image::flipY_cpu() {
 	uint8_t tmp[4];
 	uint8_t* px1;
 	uint8_t* px2;

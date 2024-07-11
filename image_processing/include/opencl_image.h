@@ -15,6 +15,9 @@ public:
 
     void diffmap(Image& image1, Image& image2);
 
+    void flipX(Image& image);
+    void flipY(Image& image);
+
 
 private:
     cl::Context context;
@@ -24,5 +27,4 @@ private:
 
     void loadKernels();
     std::string loadKernelSource(const std::string& fileName);
-    void setupMemory(Image& image, cl::Buffer& bufferImage);
 };
