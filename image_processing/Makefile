@@ -4,6 +4,7 @@ TARGET := "ImageProcessing"
 CFLAGS := -I/usr/local/cuda-12.3/targets/x86_64-linux/include -Iinclude -std=c++17
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lOpenCL
 BUILDDIR := build
+OUTPUT := output
 SRCDIR := src
 SRCEXT := cpp
 SOURCES := $(wildcard $(SRCDIR)/*.$(SRCEXT))
@@ -22,21 +23,32 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.$(SRCEXT)
 	@$(CC) $(CFLAGS) -c -o $@ $<
 
 # Rule to link directories
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) | $(OUTPUT)
 	@printf "Linking..\n";
 	@echo "  $(notdir $(OBJS))"
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
+# Rule to create OUTPUT directory
+$(OUTPUT):
+	@printf "Making Output Dir..\n";
+	@mkdir -p $(OUTPUT)
+
+
+# Rule to build all
+all: $(TARGET) $(OUTPUT)
 
 # Clean up build files
 clean:
 	@printf "\e[31m\e[1mCleaning...\e[0m\n"
 	@echo "  /$(BUILDDIR)"
+	@echo "  /$(OUTPUT)"
 	@echo "  /$(TARGET)"
 	@$(RM) -r $(BUILDDIR) $(OBJECTS)
 	@$(RM) "./$(TARGET)"
+	@$(RM) -r "./$(OUTPUT)"
 
 # Run rule to execute the compiled program
+# BROKEN
 run:
 	@mkdir -p $(BUILDDIR)
 	@for source in $(basename $(notdir $(SOURCES))); do\

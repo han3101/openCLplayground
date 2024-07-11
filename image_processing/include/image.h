@@ -12,7 +12,7 @@
 #endif
 
 enum ImageType {
-	PNG, JPG, BMP
+	PNG, JPG, BMP, JPEG
 };
 
 
@@ -28,12 +28,19 @@ struct Image {
 	Image(const Image& img);
 	~Image();
 
-	bool read(const char* filename, int channel_force = 0);
 	bool write(const char* filename);
 
+private:
+	bool read(const char* filename, int channel_force = 0);
+	
+
+public:
 	ImageType get_file_type(const char* filename);
 
 	Image& grayscale_avg_cpu();
 	Image& grayscale_lum_cpu();
+
+	Image& diffmap_cpu(Image& img);
+	Image& diffmap_scale_cpu(Image& img, uint8_t scl = 0);
 
 };

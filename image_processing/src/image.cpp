@@ -49,6 +49,9 @@ bool Image::write(const char* filename) {
     case JPG:
       success = stbi_write_jpg(filename, w, h, channels, data, 100);
       break;
+	case JPEG:
+		success = stbi_write_jpg(filename, w, h, channels, data, 100);
+      	break;
 
   }
   if(success != 0) {
@@ -72,6 +75,9 @@ ImageType Image::get_file_type(const char* filename) {
 		}
 		else if(strcmp(ext, ".bmp") == 0) {
 			return BMP;
+		}
+		else if(strcmp(ext, ".jpeg") == 0) {
+			return JPEG;
 		}
 		
 	}
@@ -102,6 +108,40 @@ Image& Image::grayscale_lum_cpu() {
 			int gray = 0.2126*data[i] + 0.7152*data[i+1] + 0.0722*data[i+2];
 			memset(data+i, gray, 3);
 		}
+	}
+	return *this;
+}
+
+Image& Image::diffmap_cpu(Image& img) {
+	int compare_width = fmin(w,img.w);
+	int compare_height = fmin(h,img.h);
+	int compare_channels = fmin(channels,img.channels);
+	for(uint32_t i=0; i<compare_height; ++i) {
+		for(uint32_t j=0; j<compare_width; ++j) {
+			for(uint8_t k=0; k<compare_channels; ++k) {
+				data[(i*w+j)*channels+k] = BYTE_BOUND(abs(data[(i*w+j)*channels+k] - img.data[(i*img.w+j)*img.channels+k]));
+			}
+		}
+	}
+	return *this;
+}
+
+Image& Image::diffmap_scale_cpu(Image& img, uint8_t scl) {
+	int compare_width = fmin(w,img.w);
+	int compare_height = fmin(h,img.h);
+	int compare_channels = fmin(channels,img.channels);
+	uint8_t largest = 0;
+	for(uint32_t i=0; i<compare_height; ++i) {
+		for(uint32_t j=0; j<compare_width; ++j) {
+			for(uint8_t k=0; k<compare_channels; ++k) {
+				data[(i*w+j)*channels+k] = BYTE_BOUND(abs(data[(i*w+j)*channels+k] - img.data[(i*img.w+j)*img.channels+k]));
+				largest = fmax(largest, data[(i*w+j)*channels+k]);
+			}
+		}
+	}
+	scl = 255/fmax(1, fmax(scl, largest));
+	for(int i=0; i<size; ++i) {
+		data[i] *= scl;
 	}
 	return *this;
 }

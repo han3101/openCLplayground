@@ -43,7 +43,7 @@ void OpenCLImageProcessor::init() {
         CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0
     };
 #else
-    cl_command_queue_properties properties = 0UL;
+    cl_command_queue_properties properties[] = {0UL};
 #endif
 
     //create context, kernel source and queue to push commands to the device.
@@ -124,7 +124,7 @@ void OpenCLImageProcessor::grayscale_avg(Image& image) {
     // Compute the elapsed time in nanoseconds
     cl_ulong elapsed_time = time_end - time_start;
 
-    std::cout << "Kernel execution time: " << elapsed_time << " nanoseconds" << std::endl;
+    std::cout << "Kernel execution time: " << elapsed_time / 1000 << " ms" << std::endl;
 #endif
 
 }

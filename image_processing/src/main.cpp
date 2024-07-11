@@ -6,28 +6,48 @@
 
 
 int main(int argc, char** argv) {
-	Image test("imgs/test.png");
+	// Image test("imgs/test.png");
+    // Image testHD("imgs/testHD.jpeg");
+    Image testB("imgs/testB.jpeg");
+    Image testA("imgs/testA.jpeg");
 
-    std::cout<<test.size<<"\n";
-
-    Image copy = test; 
 
     // Timing the computation
     auto start = std::chrono::high_resolution_clock::now();
 
-    copy.grayscale_avg_cpu();
-    copy.write("imgs/grayscale.png");
+    testA.diffmap_cpu(testB);
 
+    testA.write("output/diffmap.jpeg");
 
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
+    
+    // // High res
+    // start = std::chrono::high_resolution_clock::now();
 
-    OpenCLImageProcessor processor;
-    processor.grayscale_avg(test);
+    // testHD.grayscale_avg_cpu();
+    // testHD.write("imgs/grayscaleHD.jpg");
 
-    test.write("imgs/grayscalegpu.png");
+    // end = std::chrono::high_resolution_clock::now();
+    // elapsed = end - start;
+    // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
+
+    // // Super high res
+    // start = std::chrono::high_resolution_clock::now();
+
+    // testB.grayscale_avg_cpu();
+    // testB.write("imgs/grayscaleB.jpg");
+
+    // end = std::chrono::high_resolution_clock::now();
+    // elapsed = end - start;
+    // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
+
+    // OpenCLImageProcessor processor;
+    // processor.grayscale_avg(test);
+
+    // test.write("imgs/grayscalegpu.png");
 
 	return 0;
 }
