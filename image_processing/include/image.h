@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <cstdio>
 #include <complex>
+#include <iostream>
+#include <vector>
+#include "masks.h"
 
 //legacy feature of C
 #undef __STRICT_ANSI__
@@ -32,6 +35,12 @@ struct Image {
 
 private:
 	bool read(const char* filename, int channel_force = 0);
+
+	void mask_calc(double* mask, double filter_factor, int w, int h) {
+		for (int i = 0; i < w*h; ++i) {
+			mask[i] = mask[i] / filter_factor;
+		}
+	}
 	
 
 public:
@@ -45,5 +54,9 @@ public:
 
 	Image& flipX_cpu();
 	Image& flipY_cpu();
+
+	Image& std_convolve_clamp_to_0_cpu(uint8_t channel, const Mask::BaseMask* mask);
+	Image& std_convolve_clamp_to_border_cpu(uint8_t channel, const Mask::BaseMask* mask);
+	// Image& std_convolve_cyclic_cpu(uint8_t channel, uint32_t ker_w, uint32_t ker_h, double ker[], uint32_t cr, uint32_t cc);
 
 };

@@ -179,3 +179,71 @@ Image& Image::flipY_cpu() {
 	}
 	return *this;
 }
+
+
+Image& Image::std_convolve_clamp_to_0_cpu(uint8_t channel, const Mask::BaseMask* mask) {
+	
+	std::vector<uint8_t> new_data(w*h);
+	uint32_t ker_w = mask->getWidth(), ker_h = mask->getHeight(), cr = mask->getCenterRow(), cc = mask->getCenterColumn();
+	const double* ker = mask->getData(); 
+
+
+	uint64_t center = cr*ker_w + cc;
+	for(uint64_t k=channel; k<size; k+=channels) {
+		double c = 0;
+		for(long i = -((long)cr); i<(long)ker_h-cr; ++i) {
+			long row = ((long)k/channels)/w-i;
+			if(row < 0 || row > h-1) {
+				continue;
+			}
+			for(long j = -((long)cc); j<(long)ker_w-cc; ++j) {
+				long col = ((long)k/channels)%w-j;
+				if(col < 0 || col > w-1) {
+					continue;
+				}
+				c += ker[center+i*(long)ker_w+j]*data[(row*w+col)*channels+channel];
+			}
+		}
+
+		new_data[k/channels] = (uint8_t)BYTE_BOUND((int)round(c));
+	}
+	for(uint64_t k=channel; k<size; k+=channels) {
+		data[k] = new_data[k/channels];
+	}
+	return *this;
+}
+
+Image& Image::std_convolve_clamp_to_border_cpu(uint8_t channel, const Mask::BaseMask* mask) {
+	std::vector<uint8_t> new_data(w*h);
+	uint32_t ker_w = mask->getWidth(), ker_h = mask->getHeight(), cr = mask->getCenterRow(), cc = mask->getCenterColumn();
+	const double* ker = mask->getData(); 
+
+	uint64_t center = cr*ker_w + cc;
+	for(uint64_t k=channel; k<size; k+=channels) {
+		double c = 0;
+		for(long i = -((long)cr); i<(long)ker_h-cr; ++i) {
+			long row = ((long)k/channels)/w-i;
+			if(row < 0) {
+				row = 0;
+			}
+			else if(row > h-1) {
+				row = h-1;
+			}
+			for(long j = -((long)cc); j<(long)ker_w-cc; ++j) {
+				long col = ((long)k/channels)%w-j;
+				if(col < 0) {
+					col = 0;
+				}
+				else if(col > w-1) {
+					col = w-1;
+				}
+				c += ker[center+i*(long)ker_w+j]*data[(row*w+col)*channels+channel];
+			}
+		}
+		new_data[k/channels] = (uint8_t)BYTE_BOUND((int)round(c));
+	}
+	for(uint64_t k=channel; k<size; k+=channels) {
+		data[k] = new_data[k/channels];
+	}
+	return *this;
+}

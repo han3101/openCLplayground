@@ -317,3 +317,150 @@ void OpenCLImageProcessor::flipY(Image& image) {
 #endif
 
 }
+
+void OpenCLImageProcessor::std_convolve_clamp_to_0(Image& image, const Mask::BaseMask* mask) {
+
+    // Preprocessing for mask data
+    // Mask offset is basically center row or center column
+    uint32_t MASK_DIM = mask->getWidth(), MASK_OFFSET = mask->getCenterRow();
+	const double* ker = mask->getData(); 
+
+    // Prepare memory
+    int bytes_i = image.size * sizeof(uint8_t);
+    int bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    cl::Buffer data_d(context, CL_MEM_READ_ONLY, bytes_i);
+    cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_i);
+    cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
+    queue.enqueueWriteBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
+    queue.enqueueWriteBuffer(mask_d, CL_TRUE, 0, bytes_m, ker);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/convolution.cl");
+    //Appending the kernel, which is presented here as a string. 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "convolution_0");
+    kernel.setArg(0, data_d);
+    kernel.setArg(1, result_d);
+    kernel.setArg(2, mask_d);
+    kernel.setArg(3, image.w);
+    kernel.setArg(4, image.h);
+    kernel.setArg(5, image.channels);
+    kernel.setArg(6, MASK_DIM);
+    kernel.setArg(7, MASK_OFFSET);
+
+    // Set dimensions
+    cl::NDRange global(image.w, image.h);
+    // cl::NDRange global(image.w, image.h, image.channels);
+    
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    queue.enqueueReadBuffer(result_d, CL_TRUE, 0, bytes_i, image.data);
+
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}
+
+void OpenCLImageProcessor::std_convolve_clamp_to_border(Image& image, const Mask::BaseMask* mask) {
+
+    // Preprocessing for mask data
+    // Mask offset is basically center row or center column
+    uint32_t MASK_DIM = mask->getWidth(), MASK_OFFSET = mask->getCenterRow();
+	const double* ker = mask->getData(); 
+
+    // Prepare memory
+    int bytes_i = image.size * sizeof(uint8_t);
+    int bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    cl::Buffer data_d(context, CL_MEM_READ_ONLY, bytes_i);
+    cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_i);
+    cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
+    queue.enqueueWriteBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
+    queue.enqueueWriteBuffer(mask_d, CL_TRUE, 0, bytes_m, ker);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/convolution.cl");
+    //Appending the kernel, which is presented here as a string. 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "convolution_border");
+    kernel.setArg(0, data_d);
+    kernel.setArg(1, result_d);
+    kernel.setArg(2, mask_d);
+    kernel.setArg(3, image.w);
+    kernel.setArg(4, image.h);
+    kernel.setArg(5, image.channels);
+    kernel.setArg(6, MASK_DIM);
+    kernel.setArg(7, MASK_OFFSET);
+
+    // Set dimensions
+    cl::NDRange global(image.w, image.h);
+    // cl::NDRange global(image.w, image.h, image.channels);
+    
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    queue.enqueueReadBuffer(result_d, CL_TRUE, 0, bytes_i, image.data);
+
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}
+

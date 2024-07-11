@@ -18,6 +18,8 @@ public:
     void flipX(Image& image);
     void flipY(Image& image);
 
+    void std_convolve_clamp_to_0(Image& image, const Mask::BaseMask* mask);
+    void std_convolve_clamp_to_border(Image& image, const Mask::BaseMask* mask);
 
 private:
     cl::Context context;

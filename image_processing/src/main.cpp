@@ -8,21 +8,28 @@
 int main(int argc, char** argv) {
 	// Image test("imgs/test.png");
     // Image testHD("imgs/testHD.jpeg");
-    Image testB("imgs/testB.jpeg");
-    Image testA("imgs/testA.jpeg");
+    // Image testB("imgs/testB.jpeg");
+    // Image testA("imgs/testA.jpeg");
+    Image cat("imgs/cat.jpeg");
 
+    // std::cout<<cat.channels<<"\n";
+
+    Mask::VertEdgeDetect gaussianBlur;
 
     // Timing the computation
     // auto start = std::chrono::high_resolution_clock::now();
 
-    // testA.flipX_cpu();
-
-    // testA.write("output/flipX_cpu.jpeg");
+    // cat.std_convolve_clamp_to_border_cpu(0, &gaussianBlur);
+    // cat.std_convolve_clamp_to_border_cpu(1, &gaussianBlur);
+    // cat.std_convolve_clamp_to_border_cpu(2, &gaussianBlur);
 
 
     // auto end = std::chrono::high_resolution_clock::now();
     // std::chrono::duration<double> elapsed = end - start;
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
+
+    // cat.write("output/convolve.jpeg");
+
     
     // // High res
     // start = std::chrono::high_resolution_clock::now();
@@ -45,9 +52,9 @@ int main(int argc, char** argv) {
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
     OpenCLImageProcessor processor;
-    processor.flipY(testA);
+    processor.std_convolve_clamp_to_border(cat, &gaussianBlur);
 
-    testA.write("output/flip.jpeg");
+    cat.write("output/conv.jpeg");
 
 	return 0;
 }
