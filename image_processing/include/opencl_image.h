@@ -1,9 +1,11 @@
 #pragma once
 
 #define CL_TARGET_OPENCL_VERSION 300
-#include <CL/cl.hpp>
+#define CL_HPP_TARGET_OPENCL_VERSION 200
+#include <CL/cl2.hpp>
 #include "image.h"
 #include <stdint.h>
+// #include "PNG.h"
 
 class OpenCLImageProcessor {
 public:
@@ -30,4 +32,6 @@ private:
 
     void loadKernels();
     std::string loadKernelSource(const std::string& fileName);
+    
+    std::string getErrorString(cl_int error);
 };

@@ -4,6 +4,16 @@
 #include<cstdlib>
 
 
+std::string OpenCLImageProcessor::getErrorString(cl_int error) {
+    switch (error) {
+        case CL_SUCCESS: return "CL_SUCCESS";
+        case CL_OUT_OF_RESOURCES: return "CL_OUT_OF_RESOURCES";
+        case CL_OUT_OF_HOST_MEMORY: return "CL_OUT_OF_HOST_MEMORY";
+        case CL_MEM_OBJECT_ALLOCATION_FAILURE: return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+        default: return "Unknown OpenCL error";
+    }
+}
+
 OpenCLImageProcessor::OpenCLImageProcessor() {
     init();
 }
@@ -39,11 +49,9 @@ void OpenCLImageProcessor::init() {
 
     // Define properties for the command queue
 #ifdef PROFILE
-    cl_queue_properties properties[] = {
-        CL_QUEUE_PROPERTIES, CL_QUEUE_PROFILING_ENABLE, 0
-    };
+    cl_command_queue_properties properties = CL_QUEUE_PROFILING_ENABLE;
 #else
-    cl_command_queue_properties properties[] = {0UL};
+    cl_command_queue_properties properties = 0;
 #endif
 
     //create context, kernel source and queue to push commands to the device.
@@ -74,7 +82,7 @@ void OpenCLImageProcessor::grayscale_avg(Image& image) {
 	}
 
     // Prepare memory
-    int bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_i = image.size * sizeof(uint8_t);
     cl::Buffer data_d(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, bytes_i, image.data);
 
     // Load Kernel
@@ -130,8 +138,8 @@ void OpenCLImageProcessor::grayscale_avg(Image& image) {
 void OpenCLImageProcessor::diffmap(Image& image1, Image& image2) {
 
     // Prepare memory
-    int bytes_i = image1.size * sizeof(uint8_t);
-    int bytes_o = image2.size * sizeof(uint8_t);
+    size_t bytes_i = image1.size * sizeof(uint8_t);
+    size_t bytes_o = image2.size * sizeof(uint8_t);
     cl::Buffer image1_d(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, bytes_i, image1.data);
     cl::Buffer image2_d(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bytes_o, image2.data);
 
@@ -201,7 +209,7 @@ void OpenCLImageProcessor::diffmap(Image& image1, Image& image2) {
 void OpenCLImageProcessor::flipX(Image& image) {
 
     // Prepare memory
-    int bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_i = image.size * sizeof(uint8_t);
     cl::Buffer data_d(context, CL_MEM_READ_WRITE, bytes_i);
     queue.enqueueWriteBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
 
@@ -261,7 +269,7 @@ void OpenCLImageProcessor::flipX(Image& image) {
 void OpenCLImageProcessor::flipY(Image& image) {
 
     // Prepare memory
-    int bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_i = image.size * sizeof(uint8_t);
     cl::Buffer data_d(context, CL_MEM_READ_WRITE, bytes_i);
     queue.enqueueWriteBuffer(data_d, CL_TRUE, 0, bytes_i, image.data);
 
@@ -326,8 +334,8 @@ void OpenCLImageProcessor::std_convolve_clamp_to_0(Image& image, const Mask::Bas
 	const double* ker = mask->getData(); 
 
     // Prepare memory
-    int bytes_i = image.size * sizeof(uint8_t);
-    int bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    size_t bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
     cl::Buffer data_d(context, CL_MEM_READ_ONLY, bytes_i);
     cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_i);
     cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
@@ -399,8 +407,8 @@ void OpenCLImageProcessor::std_convolve_clamp_to_border(Image& image, const Mask
 	const double* ker = mask->getData(); 
 
     // Prepare memory
-    int bytes_i = image.size * sizeof(uint8_t);
-    int bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    size_t bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
     cl::Buffer data_d(context, CL_MEM_READ_ONLY, bytes_i);
     cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_i);
     cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
@@ -477,26 +485,24 @@ void OpenCLImageProcessor::std_convolve_clamp_to_cyclic(Image& image, const Mask
 
     // We will be using OpenCL's image format
     cl_int ret;
-    cl::ImageFormat imageFormat(CL_RGB, CL_UNORM_INT8);
-    cl::Image2D inputImage_d(context, CL_MEM_READ_ONLY, imageFormat, image.w, image.h, 0, nullptr, &ret);
-    cl::Image2D output_d(context, CL_MEM_WRITE_ONLY, imageFormat, image.w, image.h, 0, nullptr, &ret);
+    cl::ImageFormat imageFormat(CL_RGBA, CL_UNSIGNED_INT8);
+    cl::Image2D inputImage_d(context, CL_MEM_READ_ONLY, imageFormat, (size_t)image.w, (size_t)image.h, 0, nullptr, &ret);
+    cl::Image2D output_d(context, CL_MEM_WRITE_ONLY, imageFormat, (size_t)image.w, (size_t)image.h, 0, nullptr, &ret);
     if (ret != CL_SUCCESS) {
         std::cerr << "clCreateImage2D error: " << ret << "\n";
         return;
     }
-    cl::size_t<3> origin;
-    origin[0] = 0;
-    origin[1] = 0;
-    origin[2] = 0;
-    cl::size_t<3> region;
-    region[0] = image.w;
-    region[1] = image.h;
-    region[2] = 1;
+
+    std::array<size_t, 3> origin = {0, 0, 0};
+    std::array<size_t, 3> region = {(size_t)image.w, (size_t)image.h, 1};
+
+
     ret = queue.enqueueWriteImage(inputImage_d, CL_TRUE, origin, region, 0, 0, image.data);
     if (ret != CL_SUCCESS) {
-        std::cerr << "WriteImage error: " << ret << "\n";
+        std::cerr << "WriteImage error: " << getErrorString(ret) << "\n";
         return;
     }
+
 
     // Use sampler to handle masking conditions
     // Create sampler using C standard due to bug
@@ -536,8 +542,8 @@ void OpenCLImageProcessor::std_convolve_clamp_to_cyclic(Image& image, const Mask
     // std::cout << "Sampler Normalized Coordinates: " << normalizedCoords << std::endl;
 
     // Prepare memory
-    int bytes_i = image.size * sizeof(uint8_t);
-    int bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    size_t bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
     cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
     queue.enqueueWriteBuffer(mask_d, CL_TRUE, 0, bytes_m, ker);
 

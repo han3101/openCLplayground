@@ -12,9 +12,11 @@ int main(int argc, char** argv) {
     // Image testA("imgs/testA.jpeg");
     Image cat("imgs/cat.jpeg");
 
+    // Image gpu_cat = test;
+
     // std::cout<<cat.channels<<"\n";
 
-    Mask::VertEdgeDetect gaussianBlur;
+    Mask::GaussianBlur5 gaussianBlur;
 
     // Timing the computation
     // auto start = std::chrono::high_resolution_clock::now();
@@ -52,9 +54,11 @@ int main(int argc, char** argv) {
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
     OpenCLImageProcessor processor;
-    processor.std_convolve_clamp_to_cyclic(cat, &gaussianBlur);
+    processor.std_convolve_clamp_to_0(cat, &gaussianBlur);
+    // processor.std_convolve_clamp_to_border(cat, &gaussianBlur);
+    // processor.diffmap(gpu_cat, test);
 
-    // cat.write("output/conv.jpeg");
+    cat.write("output/diff.png");
 
 	return 0;
 }
