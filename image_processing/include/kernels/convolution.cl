@@ -1,5 +1,3 @@
-#define BYTE_BOUND(value) min(max((value), 0), 255)
-
 __kernel void convolution_0(
     __global uchar *matrix,
     __global uchar *result,
@@ -40,7 +38,7 @@ __kernel void convolution_0(
             }
         }
         // Write back the result
-        result[(row * w + col) * channels + ch] = (uchar)BYTE_BOUND((int)round(temp));
+        result[(row * w + col) * channels + ch] = (uchar)clamp((int)round(temp), 0, 255);
 
     }
     
@@ -96,7 +94,7 @@ __kernel void convolution_border(
             }
         }
         // Write back the result
-        result[(row * w + col) * channels + ch] = (uchar)BYTE_BOUND((int)round(temp));
+        result[(row * w + col) * channels + ch] = (uchar)clamp((int)round(temp), 0, 255);
 
     }
 
@@ -153,9 +151,9 @@ __kernel void convolution_circular(
     coords.y = row;
 
     float4 clampedSum;
-    clampedSum.x = (uchar)BYTE_BOUND((int)round(sum.x));
-    clampedSum.y = (uchar)BYTE_BOUND((int)round(sum.y));
-    clampedSum.z = (uchar)BYTE_BOUND((int)round(sum.z));
+    clampedSum.x = (uchar)clamp((int)round(sum.x), 0, 255);
+    clampedSum.y = (uchar)clamp((int)round(sum.y), 0, 255);
+    clampedSum.z = (uchar)clamp((int)round(sum.z), 0, 255);
 
     // clampedSum.x = (uchar) 0;
     // clampedSum.y = (uchar) 0;

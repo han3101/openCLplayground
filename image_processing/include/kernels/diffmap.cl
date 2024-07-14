@@ -1,5 +1,3 @@
-#define BYTE_BOUND(value) min(max((value), 0), 255)
-
 __kernel void diffmap(
     __global uchar* data, 
     __global uchar* data2,
@@ -22,8 +20,7 @@ __kernel void diffmap(
         int index1 = (i + w * j) * channels + k;
         int index2 = (i + w2 * j) * channels2 + k;
         int diff = abs(data[index1] - data2[index2]);
-        data[index1] = BYTE_BOUND(diff);
+        data[index1] = (uchar)clamp(diff, 0, 255);
     }
 
-    
 }
