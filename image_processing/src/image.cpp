@@ -89,6 +89,7 @@ Image& Image::grayscale_avg_cpu() {
 		printf("Image %p has less than 3 channels, it is assumed to already be grayscale.", this);
 	}
 	else {
+		#pragma omp parallel for num_threads(4) schedule(static)
 		for(int i = 0; i < size; i+=channels) {
 			//(r+g+b)/3
 			int gray = (data[i] + data[i+1] + data[i+2])/3;

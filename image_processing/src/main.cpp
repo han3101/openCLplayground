@@ -7,41 +7,44 @@
 
 int main(int argc, char** argv) {
 	// Image test("imgs/test.png");
-    // Image testHD("imgs/testHD.jpeg");
+    Image testHD("imgs/testHD.jpeg");
     // Image testB("imgs/testB.jpeg");
     // Image testA("imgs/testA.jpeg");
-    Image cat("imgs/cat.jpeg");
+    // Image cat("imgs/cat.jpeg");
 
-    // Image gpu_cat = test;
+    Image gpu_test = testHD;
 
     // std::cout<<cat.channels<<"\n";
 
-    Mask::GaussianBlur5 gaussianBlur;
+    Mask::BoxBlur gaussianBlur;
+    // Mask::EdgeSobelX sobelX;
+    // Mask::EdgeSobelY sobelY;
 
     // Timing the computation
     // auto start = std::chrono::high_resolution_clock::now();
 
-    // cat.std_convolve_clamp_to_border_cpu(0, &gaussianBlur);
-    // cat.std_convolve_clamp_to_border_cpu(1, &gaussianBlur);
-    // cat.std_convolve_clamp_to_border_cpu(2, &gaussianBlur);
+    // // cat.std_convolve_clamp_to_border_cpu(0, &gaussianBlur);
+    // // cat.std_convolve_clamp_to_border_cpu(1, &gaussianBlur);
+    // // cat.std_convolve_clamp_to_border_cpu(2, &gaussianBlur);
 
+    // testHD.grayscale_avg_cpu();
 
     // auto end = std::chrono::high_resolution_clock::now();
     // std::chrono::duration<double> elapsed = end - start;
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
-    // cat.write("output/convolve.jpeg");
+    // testHD.write("output/convolve.jpeg");
 
     
     // // High res
     // start = std::chrono::high_resolution_clock::now();
 
-    // testHD.grayscale_avg_cpu();
-    // testHD.write("imgs/grayscaleHD.jpg");
+    // testHD.grayscale_lum_cpu();
 
     // end = std::chrono::high_resolution_clock::now();
     // elapsed = end - start;
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
+    // testHD.write("imgs/grayscaleHD.jpg");
 
     // // Super high res
     // start = std::chrono::high_resolution_clock::now();
@@ -54,11 +57,15 @@ int main(int argc, char** argv) {
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
     OpenCLImageProcessor processor;
-    processor.std_convolve_clamp_to_0(cat, &gaussianBlur);
-    // processor.std_convolve_clamp_to_border(cat, &gaussianBlur);
+    // processor.std_convolve_clamp_to_0(cat, &gaussianBlur);
+    processor.std_convolve_clamp_to_border(testHD, &gaussianBlur);
     // processor.diffmap(gpu_cat, test);
+    // processor.std_convolve_clamp_to_0(testHD, &sobelX);
+    // processor.std_convolve_clamp_to_0(testHD, &sobelY);
+    // processor.grayscale_avg(gpu_test);
+    // processor.diffmap(testHD, gpu_test);
 
-    cat.write("output/diff.png");
+    testHD.write("output/diff.jpeg");
 
 	return 0;
 }

@@ -4,7 +4,9 @@
 #include <complex>
 #include <iostream>
 #include <vector>
+#include <omp.h>
 #include "masks.h"
+
 
 //legacy feature of C
 #undef __STRICT_ANSI__
