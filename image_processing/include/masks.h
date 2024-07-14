@@ -1,4 +1,7 @@
 #pragma once
+#include "pch.h"
+
+
 
 namespace Mask {
 
@@ -20,7 +23,7 @@ namespace Mask {
         static constexpr int cr = 1;
         static constexpr int cc = 1;
         static constexpr double filter_factor = 16;
-        double mask[9];
+        std::array<double, 9> mask;
 
     public:
 
@@ -57,7 +60,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -68,7 +71,7 @@ namespace Mask {
         static constexpr int cr = 2;
         static constexpr int cc = 2;
         static constexpr double filter_factor = 273;
-        double mask[25];
+        std::array<double, 25> mask;
     public:
         GaussianBlur5() {
             double filter[25] = {
@@ -105,7 +108,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -116,7 +119,7 @@ namespace Mask {
         static constexpr int cr = 2;
         static constexpr int cc = 2;
         static constexpr double filter_factor = 8.0;
-        double mask[25];
+        std::array<double, 25> mask;
     public:
         SharpenMask() {
             double filter[25] = {
@@ -153,7 +156,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -164,7 +167,8 @@ namespace Mask {
         static constexpr int cr = 2;
         static constexpr int cc = 2;
         static constexpr double filter_factor = 1.0;
-        double mask[25];
+        std::array<double, 25> mask;
+
     public:
         VertEdgeDetect() {
             double filter[25] = {
@@ -201,7 +205,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -212,7 +216,7 @@ namespace Mask {
         static constexpr int cr = 1;
         static constexpr int cc = 1;
         static constexpr double filter_factor = 1.0;
-        double mask[9];
+        std::array<double, 9> mask;
 
     public:
 
@@ -249,7 +253,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -260,7 +264,7 @@ namespace Mask {
         static constexpr int cr = 1;
         static constexpr int cc = 1;
         static constexpr double filter_factor = 1.0;
-        double mask[9];
+        std::array<double, 9> mask;
 
     public:
 
@@ -297,7 +301,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -308,7 +312,7 @@ namespace Mask {
         static constexpr int cr = 1;
         static constexpr int cc = 1;
         static constexpr double filter_factor = 1.0;
-        double mask[9];
+        std::array<double, 9> mask;
 
     public:
 
@@ -345,7 +349,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -356,7 +360,7 @@ namespace Mask {
         static constexpr int cr = 1;
         static constexpr int cc = 1;
         static constexpr double filter_factor = 1.0;
-        double mask[9];
+        std::array<double, 9> mask;
 
     public:
 
@@ -393,7 +397,7 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
         }
     };
 
@@ -404,7 +408,7 @@ namespace Mask {
         static constexpr int cr = 1;
         static constexpr int cc = 1;
         static constexpr double filter_factor = 9.0;
-        double mask[9];
+        std::array<double, 9> mask;
 
     public:
 
@@ -441,7 +445,81 @@ namespace Mask {
         }
 
         const double* getData() const override {
-            return mask;
+            return mask.data();
+        }
+    };
+
+    class GaussianDynamic2D : public BaseMask {
+    private:
+
+        double sigma;
+        int width;
+        int height;
+        int cr;
+        int cc;
+        double filter_factor = 1.0;
+        std::vector<double> mask;
+
+    public:
+
+        GaussianDynamic2D(double sigma) {
+            double kernel_radius = std::ceil(sigma) * 3;
+            cr = cc = (int) kernel_radius;
+            width = height = (int) kernel_radius * 2 + 1;
+
+            // Generate matrix
+            Eigen::VectorXf ax = Eigen::VectorXf::LinSpaced(width, -kernel_radius, kernel_radius);
+
+            Eigen::MatrixXf xx(width, height);
+            Eigen::MatrixXf yy(width, height);
+
+            for (int i = 0; i < height; ++i) {
+                for (int j = 0; j < width; ++j) {
+                    xx(i, j) = ax(j);
+                    yy(i, j) = ax(i);
+                }
+            }
+
+            Eigen::MatrixXf kernel = (-(xx.array().square() + yy.array().square()) / (2.0 * sigma * sigma)).exp();
+            // Normalize the kernel
+            kernel /= kernel.sum();
+
+            // Flatten the 2D kernel matrix into a 1D vector
+            mask.resize(width * height);
+            for (int i = 0; i < width; ++i) {
+                for (int j = 0; j < height; ++j) {
+                    mask[i * width + j] = kernel(i, j);
+                }
+            }
+
+        }
+
+        GaussianDynamic2D() {
+            GaussianDynamic2D(1);
+        }
+
+        int getWidth() const override {
+            return width;
+        }
+
+        int getHeight() const override {
+            return height;
+        }
+
+        int getCenterRow() const override {
+            return cr;
+        }
+
+        int getCenterColumn() const override {
+            return cc;
+        }
+
+        double getFilterFactor() const override {
+            return filter_factor;
+        }
+
+        const double* getData() const override {
+            return mask.data();
         }
     };
 

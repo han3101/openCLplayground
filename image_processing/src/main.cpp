@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
 
     // std::cout<<cat.channels<<"\n";
 
-    Mask::BoxBlur gaussianBlur;
+    Mask::GaussianDynamic2D gaussianBlur(2);
     // Mask::EdgeSobelX sobelX;
     // Mask::EdgeSobelY sobelY;
 
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
 
     OpenCLImageProcessor processor;
     processor.std_convolve_clamp_to_0(gpu_test, &gaussianBlur);
-    processor.std_convolve_clamp_to_border(gpu_test, &gaussianBlur);
+    // processor.std_convolve_clamp_to_border(gpu_test, &gaussianBlur);
     // processor.diffmap(gpu_cat, test);
     // processor.std_convolve_clamp_to_0(testHD, &sobelX);
     // processor.std_convolve_clamp_to_0(testHD, &sobelY);
