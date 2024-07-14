@@ -472,6 +472,7 @@ void OpenCLImageProcessor::std_convolve_clamp_to_border(Image& image, const Mask
 
 }
 
+// BROKEN
 void OpenCLImageProcessor::std_convolve_clamp_to_cyclic(Image& image, const Mask::BaseMask* mask) {
     if(image.channels < 3) {
 		std::cout<<"Image "<<&image<<" has less than 3 channels which is the required channel for this convolution, please use other methods."<<std::endl;
@@ -606,3 +607,80 @@ void OpenCLImageProcessor::std_convolve_clamp_to_cyclic(Image& image, const Mask
 
 }
 
+void OpenCLImageProcessor::resizeBilinear(Image& image, int nw, int nh) {
+
+    // Prepare memory
+    cl_int ret;
+    size_t bytes_i = image.size * sizeof(uint8_t);
+    size_t bytes_o = nw * nh * image.channels * sizeof(uint8_t);
+    cl::Buffer data_d(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, bytes_i, image.data);
+    cl::Buffer output_d(context, CL_MEM_WRITE_ONLY, bytes_o);
+
+    // Load Kernel
+    std::string kernel_code = loadKernelSource("include/kernels/resize.cl"); 
+    cl::Program::Sources sources;
+    sources.push_back({ kernel_code.c_str(),kernel_code.length() });
+
+    // Compile program
+    cl::Program program(context, sources);
+    if (program.build({ device }) != CL_SUCCESS) {
+        std::cout << " Error building: " << program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device) << "\n";
+        exit(1);
+    }
+
+    float scaleX = (float) (image.w-1) / (nw-1);
+    float scaleY = (float) (image.h-1) / (nh-1);
+
+    // Load in kernel args
+    cl::Kernel kernel(program, "resize_bilinear");
+    kernel.setArg(0, data_d);
+    kernel.setArg(1, output_d);
+    kernel.setArg(2, nw);
+    kernel.setArg(3, nh);
+    kernel.setArg(4, image.w);
+    kernel.setArg(5, image.h);
+    kernel.setArg(6, image.channels);
+    kernel.setArg(7, scaleX);
+    kernel.setArg(8, scaleY);
+
+    // Set dimensions
+    cl::NDRange global(nw, nh);
+    
+
+#ifdef PROFILE
+    // For Profiling
+    cl::Event event;
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange, nullptr, &event);
+#else
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, global, cl::NullRange);
+#endif
+
+    queue.finish();
+
+    // Read back the results
+    image.size = nw * nh * image.channels;
+	uint8_t* newImage = new uint8_t[image.size];
+    image.w = nw;
+	image.h = nh;
+	delete[] image.data;
+	image.data = newImage;
+	newImage = nullptr;
+    ret = queue.enqueueReadBuffer(output_d, CL_TRUE, 0, bytes_o, image.data);
+    if (ret != CL_SUCCESS) {
+        std::cerr << "Failed to read out buffer: " << ret << "\n";
+        return;
+    }
+#ifdef PROFILE
+    // Get profiling information
+    cl_ulong time_start;
+    cl_ulong time_end;
+    event.getProfilingInfo(CL_PROFILING_COMMAND_START, &time_start);
+    event.getProfilingInfo(CL_PROFILING_COMMAND_END, &time_end);
+
+    // Compute the elapsed time in nanoseconds
+    cl_ulong elapsed_time = time_end - time_start;
+
+    std::cout << "Kernel execution time: " << (double) elapsed_time / 1000000 << " ms" << std::endl;
+#endif
+
+}

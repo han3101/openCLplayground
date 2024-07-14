@@ -20,6 +20,9 @@ public:
     void flipX(Image& image);
     void flipY(Image& image);
 
+    void resizeBilinear(Image& image, int nw, int nh);
+    void resizeBicubic(Image& image, int nw, int nh);
+
     void std_convolve_clamp_to_0(Image& image, const Mask::BaseMask* mask);
     void std_convolve_clamp_to_border(Image& image, const Mask::BaseMask* mask);
     void std_convolve_clamp_to_cyclic(Image& image, const Mask::BaseMask* mask);

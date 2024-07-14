@@ -61,5 +61,7 @@ public:
 	Image& std_convolve_clamp_to_border_cpu(uint8_t channel, const Mask::BaseMask* mask);
 	
 	Image& crop(uint16_t cx, uint16_t cy, uint16_t cw, uint16_t ch);
+	Image& resizeNN(uint16_t nw, uint16_t nh);
+	Image& resizeBilinear_cpu(uint16_t nw, uint16_t nh);
 
 };

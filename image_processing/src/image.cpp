@@ -272,3 +272,78 @@ Image& Image::crop(uint16_t cx, uint16_t cy, uint16_t cw, uint16_t ch) {
 
 	return *this;
 }
+
+
+Image& Image::resizeNN(uint16_t nw, uint16_t nh) {
+	size = nw * nh * channels;
+	uint8_t* newImage = new uint8_t[size];
+
+	float scaleX = (float)nw / (w);
+	float scaleY = (float)nh / (h);
+	uint16_t sx, sy;
+
+	for(uint16_t y = 0;y < nh;++y) {
+		sy = (uint16_t)(y / scaleY);
+		for(uint16_t x = 0;x < nw;++x) {
+			sx = (uint16_t)(x / scaleX);
+
+			memcpy(&newImage[(x + y * nw) * channels], &data[(sx + sy * w) * channels], channels);
+
+		}
+	}
+
+
+	w = nw;
+	h = nh;
+	delete[] data;
+	data = newImage;
+	newImage = nullptr;
+
+	return *this;
+}
+
+Image& Image::resizeBilinear_cpu(uint16_t nw, uint16_t nh) {
+    size = nw * nh * channels;
+    uint8_t* newImage = new uint8_t[size];
+
+    float scaleX = (float)(w - 1) / (nw - 1);
+    float scaleY = (float)(h - 1) / (nh - 1);
+    int x, y, index;
+    float fx, fy, fx1, fy1;
+    uint16_t ix, iy, ix1, iy1;
+
+    for (uint16_t ny = 0; ny < nh; ++ny) {
+        fy = ny * scaleY;
+        iy = (uint16_t)fy;
+        fy1 = fy - iy;
+        for (uint16_t nx = 0; nx < nw; ++nx) {
+            fx = nx * scaleX;
+            ix = (uint16_t)fx;
+            fx1 = fx - ix;
+
+            ix1 = ix + 1;
+            iy1 = iy + 1;
+            if (ix1 >= w) ix1 = ix;
+            if (iy1 >= h) iy1 = iy;
+			
+			std::cout<<"low_x: "<<ix<<" high_x: "<<ix1<<"\n";
+
+            for (int c = 0; c < channels; ++c) {
+                float value = (1 - fx1) * (1 - fy1) * data[(ix + iy * w) * channels + c] +
+                              fx1 * (1 - fy1) * data[(ix1 + iy * w) * channels + c] +
+                              (1 - fx1) * fy1 * data[(ix + iy1 * w) * channels + c] +
+                              fx1 * fy1 * data[(ix1 + iy1 * w) * channels + c];
+
+                newImage[(nx + ny * nw) * channels + c] = (uint8_t)value;
+            }
+        }
+    }
+
+    w = nw;
+    h = nh;
+    delete[] data;
+    data = newImage;
+    newImage = nullptr;
+
+    return *this;
+}

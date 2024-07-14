@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
     // // cat.std_convolve_clamp_to_border_cpu(1, &gaussianBlur);
     // // cat.std_convolve_clamp_to_border_cpu(2, &gaussianBlur);
 
-    // testHD.grayscale_avg_cpu();
+    // testHD.resizeBilinear_cpu(testHD.w, testHD.h * 1.5);
 
     // auto end = std::chrono::high_resolution_clock::now();
     // std::chrono::duration<double> elapsed = end - start;
@@ -58,14 +58,14 @@ int main(int argc, char** argv) {
 
     OpenCLImageProcessor processor;
     // processor.std_convolve_clamp_to_0(cat, &gaussianBlur);
-    processor.std_convolve_clamp_to_border(testHD, &gaussianBlur);
+    // processor.std_convolve_clamp_to_border(testHD, &gaussianBlur);
     // processor.diffmap(gpu_cat, test);
     // processor.std_convolve_clamp_to_0(testHD, &sobelX);
     // processor.std_convolve_clamp_to_0(testHD, &sobelY);
-    // processor.grayscale_avg(gpu_test);
+    processor.resizeBilinear(gpu_test, gpu_test.w, gpu_test.h * 1.5);
     // processor.diffmap(testHD, gpu_test);
 
-    testHD.write("output/diff.jpeg");
+    gpu_test.write("output/diff.jpeg");
 
 	return 0;
 }
