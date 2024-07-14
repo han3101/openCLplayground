@@ -16,9 +16,12 @@ int main(int argc, char** argv) {
 
     // std::cout<<cat.channels<<"\n";
 
-    Mask::GaussianDynamic2D gaussianBlur(2);
+    Mask::GaussianBlur3 gaussianBlur;
     // Mask::EdgeSobelX sobelX;
     // Mask::EdgeSobelY sobelY;
+
+    Mask::GaussianDynamic1D gaussianBlur1(1, false);
+    // Mask::GaussianDynamic1D gaussianBlur2(1, true);
 
     // Timing the computation
     // auto start = std::chrono::high_resolution_clock::now();
@@ -57,13 +60,15 @@ int main(int argc, char** argv) {
     // std::cout << "Time taken for computation: " << elapsed.count() * 1000 << " ms" << std::endl;
 
     OpenCLImageProcessor processor;
-    processor.std_convolve_clamp_to_0(gpu_test, &gaussianBlur);
+    processor.std_convolve_clamp_to_0(gpu_test, &gaussianBlur1);
+    // processor.std_convolve_clamp_to_0(gpu_test, &gaussianBlur2);
+    processor.std_convolve_clamp_to_0(testHD, &gaussianBlur);
     // processor.std_convolve_clamp_to_border(gpu_test, &gaussianBlur);
     // processor.diffmap(gpu_cat, test);
     // processor.std_convolve_clamp_to_0(testHD, &sobelX);
     // processor.std_convolve_clamp_to_0(testHD, &sobelY);
     // processor.resizeBicubic(gpu_test, gpu_test.w, gpu_test.h * 1.5);
-    // processor.diffmap(gpu_test, testHD);
+    processor.diffmap(gpu_test, testHD);
 
     gpu_test.write("output/diff.jpeg");
 
