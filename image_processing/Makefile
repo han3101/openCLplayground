@@ -43,7 +43,7 @@ profile:
 	$(MAKE) PROFILE=1
 
 # Clean up build files
-clean:
+clean-all:
 	@printf "\e[31m\e[1mCleaning...\e[0m\n"
 	@echo "  /$(BUILDDIR)"
 	@echo "  /$(OUTPUT)"
@@ -53,23 +53,9 @@ clean:
 	@$(RM) -r "./$(OUTPUT)"
 
 # Run rule to execute the compiled program
-# BROKEN
-run:
-	@mkdir -p $(BUILDDIR)
-	@for source in $(basename $(notdir $(SOURCES))); do\
-		printf "\e[33m\e[1mBuilding...\e[0m\n";\
-		echo "  $$source.o from $$source.$(SRCEXT)";\
-		$(CC) $(CFLAGS) -c -o $(BUILDDIR)/$$source.o $(SRCDIR)/$$source.$(SRCEXT);\
-	done
-	@printf "\e[95m\e[1mLinking...\e[0m\n";
-	@echo "  $(notdir $(OBJS))"
-	@$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
-	@printf "\e[33m\e[1mRunning $(TARGET)\e[0m\n"
-	@ ./$(TARGET)
-
 r:
 	@printf "Running $(TARGET)\n"
 	@./$(TARGET)
 
 # Phony targets
-.PHONY: all clean r profile
+.PHONY: all clean-all r profile

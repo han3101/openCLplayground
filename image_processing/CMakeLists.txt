@@ -12,6 +12,8 @@ endif()
 
 add_definitions(-DCL_TARGET_OPENCL_VERSION=300)
 
+enable_testing()
+
 # Check for CUDA
 find_package(CUDA QUIET)
 if(CUDA_FOUND)
@@ -76,9 +78,29 @@ add_custom_target(r
 )
 
 
+# For testing
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  URL https://github.com/google/googletest/archive/e39786088138f2749d64e9e90e0f9902daa77c40.zip
+)
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+# set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
+include(GoogleTest)
+set(TEST_SOURCE 
 
+    src/test.cc
+    src/image.cpp
+    src/opencl_image.cpp
+    
+)
+add_executable(${PROJECT_NAME}_test ${TEST_SOURCE} ${APPLICATION_HEADERS})
+target_include_directories(${PROJECT_NAME}_test PUBLIC ${INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME}_test PRIVATE ${OpenCL_LIBRARIES} OpenMP::OpenMP_CXX GTest::gtest_main)
 
-
-
-
+gtest_discover_tests(${PROJECT_NAME}_test
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    PROPERTIES ENVIRONMENT "GTEST_COLOR=1"
+)
