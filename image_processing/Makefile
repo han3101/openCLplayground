@@ -4,7 +4,7 @@ TARGET := "ImageProcessing"
 CFLAGS := -Iinclude -I/usr/include -std=c++17 -DCL_TARGET_OPENCL_VERSION=300 -fopenmp
 # CFLAGS := -I/usr/local/cuda-12.3/targets/x86_64-linux/include -std=c++17 -DCL_TARGET_OPENCL_VERSION=300 -fopenmp 
 LDFLAGS = -L/usr/lib/x86_64-linux-gnu -lOpenCL
-BUILDDIR := build
+BUILDDIR := bin
 OUTPUT := output
 SRCDIR := src
 SRCEXT := cpp
