@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16.3)
-project(ImageProcessing VERSION 0.9.0)
+project(ImageProcessing VERSION 1.0.0)
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 17)
@@ -39,7 +39,7 @@ set(APPLICATION_HEADERS
     include/masks.h
 )
 
-add_executable(${PROJECT_NAME} ${APPLICATION_SOURCE} ${APPLICATION_HEADERS})
+add_executable(${PROJECT_NAME} ${APPLICATION_SOURCE})
 
 set(OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/output")
 
@@ -96,7 +96,7 @@ set(TEST_SOURCE
     src/opencl_image.cpp
     
 )
-add_executable(${PROJECT_NAME}_test ${TEST_SOURCE} ${APPLICATION_HEADERS})
+add_executable(${PROJECT_NAME}_test ${TEST_SOURCE})
 target_include_directories(${PROJECT_NAME}_test PUBLIC ${INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME}_test PRIVATE ${OpenCL_LIBRARIES} OpenMP::OpenMP_CXX GTest::gtest_main)
 

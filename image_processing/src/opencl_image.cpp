@@ -330,12 +330,13 @@ void OpenCLImageProcessor::std_convolve_clamp_to_0(Image& image, const Mask::Bas
 
     // Preprocessing for mask data
     // Mask offset is basically center row or center column
-    uint32_t MASK_DIM = mask->getWidth(), MASK_OFFSET = mask->getCenterRow();
+    uint32_t MASK_W = mask->getWidth(), MASK_OFFSET_W = mask->getCenterColumn();
+    uint32_t MASK_H = mask->getHeight(), MASK_OFFSET_H = mask->getCenterRow();
 	const double* ker = mask->getData(); 
 
     // Prepare memory
     size_t bytes_i = image.size * sizeof(uint8_t);
-    size_t bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    size_t bytes_m = MASK_H * MASK_W * sizeof(double);
     cl::Buffer data_d(context, CL_MEM_READ_ONLY, bytes_i);
     cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_i);
     cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
@@ -363,8 +364,10 @@ void OpenCLImageProcessor::std_convolve_clamp_to_0(Image& image, const Mask::Bas
     kernel.setArg(3, image.w);
     kernel.setArg(4, image.h);
     kernel.setArg(5, image.channels);
-    kernel.setArg(6, MASK_DIM);
-    kernel.setArg(7, MASK_OFFSET);
+    kernel.setArg(6, MASK_W);
+    kernel.setArg(7, MASK_H);
+    kernel.setArg(8, MASK_OFFSET_W);
+    kernel.setArg(9, MASK_OFFSET_H);
 
     // Set dimensions
     cl::NDRange global(image.w, image.h);
@@ -403,12 +406,13 @@ void OpenCLImageProcessor::std_convolve_clamp_to_border(Image& image, const Mask
 
     // Preprocessing for mask data
     // Mask offset is basically center row or center column
-    uint32_t MASK_DIM = mask->getWidth(), MASK_OFFSET = mask->getCenterRow();
+    uint32_t MASK_W = mask->getWidth(), MASK_OFFSET_W = mask->getCenterColumn();
+    uint32_t MASK_H = mask->getHeight(), MASK_OFFSET_H = mask->getCenterRow();
 	const double* ker = mask->getData(); 
 
     // Prepare memory
     size_t bytes_i = image.size * sizeof(uint8_t);
-    size_t bytes_m = MASK_DIM * MASK_DIM * sizeof(double);
+    size_t bytes_m = MASK_H * MASK_W * sizeof(double);
     cl::Buffer data_d(context, CL_MEM_READ_ONLY, bytes_i);
     cl::Buffer result_d(context, CL_MEM_WRITE_ONLY, bytes_i);
     cl::Buffer mask_d(context, CL_MEM_READ_ONLY, bytes_m);
@@ -436,8 +440,10 @@ void OpenCLImageProcessor::std_convolve_clamp_to_border(Image& image, const Mask
     kernel.setArg(3, image.w);
     kernel.setArg(4, image.h);
     kernel.setArg(5, image.channels);
-    kernel.setArg(6, MASK_DIM);
-    kernel.setArg(7, MASK_OFFSET);
+    kernel.setArg(6, MASK_W);
+    kernel.setArg(7, MASK_H);
+    kernel.setArg(8, MASK_OFFSET_W);
+    kernel.setArg(9, MASK_OFFSET_H);
 
     // Set dimensions
     cl::NDRange global(image.w, image.h);

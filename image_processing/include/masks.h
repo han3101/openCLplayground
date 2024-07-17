@@ -554,7 +554,7 @@ namespace Mask {
             
             
             // Generate matrix
-            Eigen::VectorXf ax = Eigen::VectorXf::LinSpaced(width, -kernel_radius, kernel_radius);
+            Eigen::VectorXf ax = Eigen::VectorXf::LinSpaced(kernel_size, -kernel_radius, kernel_radius);
 
             Eigen::VectorXf kernel = (-(ax.array().square()) / (2.0f * sigma * sigma)).exp();
             // Normalize the kernel
